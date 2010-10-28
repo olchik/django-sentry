@@ -1,6 +1,7 @@
 {% extends "sentry/group/details.html" %}
 
 {% load paging_extras %}
+{% load sentry_helpers %}
 
 {% block inner %}
     <h2>Message List</h2>
@@ -10,7 +11,7 @@
     </div>
     <ul class="messages" id="message_list">
         {% for message in message_list.objects %}
-            {% include "sentry/partial/_message.html" %}
+            {% render_message group message %}
         {% endfor %}
     </ul>
     <div class="clearfix">

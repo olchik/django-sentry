@@ -1,0 +1,8 @@
+{% load sentry_helpers %}
+<li class="{% cycle 'row1' 'row2' %} level-{{ obj.level }}{% if priority %} priority-{{ priority }}{% endif %}" id="message_{{ obj.pk }}" data-sentry-count="{{ obj.times_seen }}">
+    <h3><a href="{% url sentry-group-message group.pk obj.pk %}">{% if obj.url %}{{ obj.url }}{% else %}{{ obj.server_name }}{% endif %}</a></h3>
+    <span class="status status-{{ obj.status }}">{{ obj.get_status_display }}</span>
+    <p class="message"><span class="tag tag-level">{{ obj.get_level_display }}</span> <span class="tag tag-server">{{ obj.server_name }}</span><span class="last_seen">{{ obj.datetime|timesince }}</span>
+    </p>
+    <a href="{% url sentry-group-message obj.pk obj.pk %}" class="row_link"></a>
+</li>

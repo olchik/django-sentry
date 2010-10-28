@@ -7,6 +7,7 @@ import datetime
 import logging
 import zlib
 
+from django.db.models import Q
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
@@ -69,7 +70,7 @@ def index(request):
     filters = []
     for filter_ in get_filters():
         filters.append(filter_(request))
-    
+
     try:
         page = int(request.GET.get('p', 1))
     except (TypeError, ValueError):
@@ -93,16 +94,20 @@ def index(request):
 
     
     any_filter = False
+    
+    query = Q()
     for filter_ in filters:
         if not filter_.is_set():
             continue
         any_filter = True
-        message_list = filter_.get_query_set(message_list)
-    
+        query &= filter_._get_query()
+    message_list = message_list.filter(query)
+
     today = datetime.datetime.now()
 
     has_realtime = page == 1
-    
+    MEDIA_URL = '/media/'
+    config = conf
     return render_to_response('sentry/index.html', locals())
 
 @login_required
@@ -128,12 +133,15 @@ def ajax_handler(request):
         else:
             sort = 'priority'
             message_list = message_list.order_by('-score', '-last_seen')
-        
+
+        query = Q()
         for filter_ in filters:
             if not filter_.is_set():
                 continue
-            message_list = filter_.get_query_set(message_list)
-        
+            any_filter = True
+            query &= filter_._get_query()
+        message_list = message_list.filter(query)
+
         data = [
             (m.pk, {
                 'html': render_to_string('sentry/partial/_group.html', {

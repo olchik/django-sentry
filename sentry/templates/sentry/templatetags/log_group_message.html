@@ -1,0 +1,19 @@
+{% load sentry_helpers %}
+
+<li class="{% cycle 'row1' 'row2' %} level-{{ obj.level }}{% if priority %} priority-{{ priority }}{% endif %}" id="group_{{ obj.pk }}" data-sentry-count="{{ obj.times_seen }}">
+    <span class="count count-digits-{{ obj.times_seen|num_digits }}">{{ obj.times_seen }}</span>
+    <h3><a href="{% url sentry-group obj.pk %}">{% if obj.view %}{{ obj.view }}{% else %}{{ obj.message_top }}{% endif %}</a></h3>
+    <span class="last_seen">{{ obj.last_seen|timesince }}</span>
+    <span class="status status-{{ obj.status }}">{{ obj.get_status_display }}</span>
+    <p class="message">
+        <span class="tag tag-type">log</span>
+        <span class="tag tag-level">{{ obj.get_level_display }}</span> 
+        <span class="tag tag-logger">{{ obj.logger }}</span> 
+        {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
+        {{ obj.error }}
+    </p>
+    <a href="{% url sentry-group obj.pk %}" class="row_link"></a>
+    {% if obj.status == 0 %}
+        <a href="{% url sentry-ajax %}?op=resolve&amp;gid={{ obj.pk }}" onclick="sentryResolve({{ obj.pk }});returnfalse;" class="button resolve_button hidden">&#10003;</a>
+    {% endif %}
+</li>

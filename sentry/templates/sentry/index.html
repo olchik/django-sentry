@@ -17,6 +17,15 @@
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>
         <style type="text/css">@import '{% url sentry-media "styles/global.css" %}';</style>
+        
+        <link rel="stylesheet" type="text/css" media="all" href="{{ MEDIA_URL }}css/jquery-ui-1.8.5.custom.css" />
+        <script type="text/javascript" src="{{ MEDIA_URL }}js/jquery-ui-1.8.5.custom.min.js"></script>
+        <script>
+        $(function() {
+           //$( "#filters-accordion" ).accordion({ header: 'h2' });
+        });
+        </script>
+
     </head> 
     
     <body> 
@@ -42,14 +51,22 @@
                             <h2>Last 24 Hours</h2>
                             <img src="{{ chart_url }}" class="chart" alt="chart"/>
                         {% endif %}
-                    
+
+                        <div id="filters-accordion">
                         {% for filter in filters %}
-                            <h2>{{ filter.label }}</h2>
+                            {% ifchanged filter.message_type %}
+                                {% if not forloop.first %}</div>{% endif %}
+                                <h2>{{ filter.message_type_title|default:"Filters" }}</h2>
+                                <div style="border: 2px #fff solid; padding: 5px;">
+                            {% endifchanged %}
+                            <h3>{{ filter.label }}</h3>
                             <form method="get" action="{{ filter.get_query_string|safe }}">
                                 {{ filter.render }}
                             </form>
+                            {% if forloop.last %}</div>{% endif %}
                         {% endfor %}
                     </div>
+                </div>
 
                     <div id="body" class="with-sidebar column">
                         {% paginate message_list from request as message_list per_page 15 %}
@@ -75,7 +92,7 @@
                             </div>
                             <ul class="messages" id="message_list">
                                 {% for group, priority in message_list.objects|with_priority %}
-                                    {% include "sentry/partial/_group.html" %}
+                                    {% render_group_message group priority %}
                                 {% endfor %}
                             </ul>
                             <div class="clearfix">

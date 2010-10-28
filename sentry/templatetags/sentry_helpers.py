@@ -1,7 +1,9 @@
 from django import template
 from django.db.models import Count
 from django.utils import simplejson
+from django.template.loader import render_to_string
 
+from sentry import conf
 from sentry.helpers import get_db_engine
 from sentry.plugins import GroupActionProvider
 
@@ -137,3 +139,70 @@ def timesince(value):
     if value == '1 day':
         return 'Yesterday'
     return value + ' ago'
+
+
+class BaseMessageNode(template.Node):
+    def __init__(self, message, priority, is_short_info):
+        self.message = template.Variable(message)
+        self.priority = priority
+        self.is_short_info = is_short_info
+
+    def render(self, context):
+        obj = self.message.resolve(context)
+        priority = self.priority
+        is_short_info = self.is_short_info
+        return render_to_string(self.TEMPLATES[obj.message_type], locals())
+
+
+class MessageNode(BaseMessageNode):
+    TEMPLATES = {conf.LOG: 'sentry/templatetags/log_message.html',
+                 conf.ANY: 'sentry/templatetags/log_message.html',
+                 conf.TEST: 'sentry/templatetags/test_message.html'}
+
+    def __init__(self, group, message, priority, is_short_info):
+        self.group = template.Variable(group)
+        super(MessageNode, self).__init__(message, priority, is_short_info)
+
+    def render(self, context):
+        group = self.group.resolve(context)
+        obj = self.message.resolve(context)
+        priority = self.priority
+        is_short_info = int(self.is_short_info)
+        return render_to_string(self.TEMPLATES[obj.message_type], locals())
+
+
+class GroupMessageNode(BaseMessageNode):
+    TEMPLATES = {conf.LOG: 'sentry/templatetags/log_group_message.html',
+                 conf.TEST: 'sentry/templatetags/test_group_message.html'}
+
+@register.tag
+def render_message(parser, token):
+    try:
+        tokens = token.split_contents()
+    except ValueError:
+        raise template.TemplateSyntaxError, ""
+
+    # Pop tag name
+    tokens.pop(0)
+
+    group = tokens.pop(0)
+    message = tokens.pop(0)
+    priority = tokens.pop(0) if tokens else None
+    is_short_info = tokens.pop(0) if tokens else 1
+    return MessageNode(group, message, priority, is_short_info)
+
+
+@register.tag
+def render_group_message(parser, token):
+    try:
+        tokens = token.split_contents()
+    except ValueError:
+        raise template.TemplateSyntaxError, ""
+
+    # Pop tag name
+    tokens.pop(0)
+
+    group_message = tokens.pop(0)
+    priority = tokens.pop(0)
+    is_short_info = tokens.pop(0) if tokens else True
+    return GroupMessageNode(group_message, priority, is_short_info)

@@ -1,3 +1,4 @@
+
 import base64
 try:
     import cPickle as pickle
@@ -40,6 +41,11 @@ STATUS_LEVELS = (
     (1, _('resolved')),
 )
 
+NA, FAILED, SUCCESSFUL = 0, 1, 2
+TEST_RESULTS = ((NA, 'NA'),
+                (SUCCESSFUL, 'Successful'),
+                (FAILED, 'Failed'))
+
 class GzippedDictField(models.TextField):
     """
     Slightly different from a JSONField in the sense that the default
@@ -70,13 +76,22 @@ class GzippedDictField(models.TextField):
         return (field_class, args, kwargs)
 
 class MessageBase(Model):
-    logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
-    class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
-    level           = models.PositiveIntegerField(choices=conf.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
+    name            = models.CharField(max_length=200)
+    message_type    = models.IntegerField(choices=conf.MESSAGE_TYPES, default=conf.ANY)
+    project         = models.ForeignKey('main.Project')
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
-    view            = models.CharField(max_length=200, blank=True, null=True)
     checksum        = models.CharField(max_length=32)
+
+    # Log specific
+    logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
+    level           = models.PositiveIntegerField(choices=conf.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
+
+    # Test specific
+    test_result     = models.IntegerField(choices=TEST_RESULTS, default=NA)
+    test            = models.ForeignKey('testing.Test', null=True, blank=True)
+
+    class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
     data            = GzippedDictField(blank=True, null=True)
 
     objects         = SentryManager()
@@ -120,7 +135,7 @@ class GroupedMessage(MessageBase):
     objects         = GroupedMessageManager()
 
     class Meta:
-        unique_together = (('logger', 'view', 'checksum'),)
+        unique_together = (('message_type', 'name', 'checksum', 'project'),)
         verbose_name_plural = _('grouped messages')
         verbose_name = _('grouped message')
         permissions = (
@@ -229,8 +244,7 @@ class Message(MessageBase):
     group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")
     datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
-    server_name     = models.CharField(max_length=128, db_index=True)
-    site            = models.CharField(max_length=128, db_index=True, null=True)
+    site            = models.ForeignKey('main.Site', null=True)
 
     class Meta:
         verbose_name = _('message')
@@ -309,3 +323,10 @@ register_indexes()
 # XXX: Django sucks and we can't listen to our specific app
 # post_syncdb.connect(GroupedMessage.create_sort_index, sender=__name__)
 post_syncdb.connect(GroupedMessage.create_sort_index, sender=sys.modules[__name__])
+
+import logging
+from sentry.client.handlers import SentryHandler
+logging.getLogger().addHandler(SentryHandler())
+logger = logging.getLogger('sentry.errors')
+logger.propagate = False
+logger.addHandler(logging.StreamHandler(sys.stdout))

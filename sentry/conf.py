@@ -16,13 +16,19 @@ if DATABASE_USING:
 THRASHING_TIMEOUT = getattr(settings, 'SENTRY_THRASHING_TIMEOUT', 60)
 THRASHING_LIMIT = getattr(settings, 'SENTRY_THRASHING_LIMIT', 10)
 
-FILTERS = getattr(settings, 'SENTRY_FILTERS', (
-    'sentry.filters.StatusFilter',
-    'sentry.filters.LoggerFilter',
-    'sentry.filters.LevelFilter',
-    'sentry.filters.ServerNameFilter',
-    'sentry.filters.SiteFilter',
-))
+ANY, LOG, TEST = 0, 1, 2
+ANY_LABEL, LOG_LABEL, TEST_LABEL = None, 'Log', 'Test'
+MESSAGE_TYPES = ((LOG, LOG_LABEL),
+                (TEST, TEST_LABEL))
+
+DEFAULT_FILTERS = ('sentry.filters.MessageTypeFilter',
+                   'sentry.filters.StatusFilter',
+                   'sentry.filters.ServerNameFilter',
+                   'sentry.filters.SiteFilter',
+                   'sentry.filters.TestResultsFilter',
+                   'sentry.filters.LoggerFilter',
+                   'sentry.filters.LevelFilter', )
+FILTERS = getattr(settings, 'SENTRY_FILTERS', DEFAULT_FILTERS)
 
 KEY = getattr(settings, 'SENTRY_KEY', md5_constructor(settings.SECRET_KEY).hexdigest())
 
@@ -54,6 +60,7 @@ if USE_LOGGING:
     default_client = 'sentry.client.log.LoggingSentryClient'
 else:
     default_client = 'sentry.client.base.SentryClient'
+#default_client = None
 
 CLIENT = getattr(settings, 'SENTRY_CLIENT', default_client)
 

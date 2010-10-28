@@ -2,6 +2,7 @@
 from django.conf import settings
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
+from django.db.models import Q
 
 from sentry import conf
 
@@ -51,7 +52,14 @@ class SentryFilter(object):
     widget = ChoiceWidget
     # This must be a string
     default = ''
-    
+    message_type = conf.ANY
+
+    @property
+    def message_type_title(self):
+        for msg_type, label in conf.MESSAGE_TYPES:
+            if msg_type == self.message_type:
+                return label
+
     def __init__(self, request):
         self.request = request
     
@@ -81,13 +89,22 @@ class SentryFilter(object):
         return SortedDict((l, l) for l in FilterValue.objects.filter(key=self.column)\
                                                      .values_list('value', flat=True)\
                                                      .order_by('value'))
-    
-    def get_query_set(self, queryset):
-        from indexer.models import Index
-        kwargs = {self.column: self.get_value()}
-        if self.column.startswith('data__'):
-            return Index.objects.get_for_queryset(queryset, **kwargs)
-        return queryset.filter(**kwargs)
+
+    def _get_query(self):
+        try:
+            from indexer.models import Index
+            kwargs = {self.column: self.get_value()}
+    #        if self.column.startswith('data__'):
+    #            return Index.objects.get_for_queryset(queryset, **kwargs)
+            return  Q(**kwargs) |self._get_other_query()
+        except Exception, ex:
+            print ex
+
+    def _get_other_query(self):
+        if not self.message_type is None:
+            return ~Q(message_type=self.message_type)
+        else:
+            return Q()
     
     def process(self, data):
         """``self.request`` is not available within this method"""
@@ -97,10 +114,20 @@ class SentryFilter(object):
         widget = self.get_widget()
         return widget.render(self.get_value())
 
+
+class MessageTypeFilter(SentryFilter):
+    label = 'Message Type'
+    column = 'message_type'
+    default = None
+
+    def get_choices(self):
+        return SortedDict(conf.MESSAGE_TYPES)
+
+
 class StatusFilter(SentryFilter):
     label = 'Status'
     column = 'status'
-    default = '0'
+    default = None
 
     def get_choices(self):
         return SortedDict([
@@ -108,16 +135,27 @@ class StatusFilter(SentryFilter):
             (1, 'Resolved'),
         ])
 
+
+class TestResultsFilter(SentryFilter):
+    label = 'Test Result'
+    column = 'test_result'
+    message_type = conf.TEST
+
+    def get_choices(self):
+        from sentry.models import TEST_RESULTS
+        return SortedDict(TEST_RESULTS)
+
 class LoggerFilter(SentryFilter):
     label = 'Logger'
     column = 'logger'
+    message_type = conf.LOG
 
 class ServerNameFilter(SentryFilter):
     label = 'Server Name'
     column = 'server_name'
 
-    def get_query_set(self, queryset):
-        return queryset.filter(message_set__server_name=self.get_value()).distinct()
+    def _get_query(self):
+        return Q(message_set__server_name=self.get_value())
 
 class SiteFilter(SentryFilter):
     label = 'Site'
@@ -128,10 +166,10 @@ class SiteFilter(SentryFilter):
             return data
         if conf.SITE is None:
             if 'django.contrib.sites' in settings.INSTALLED_APPS:
-                from django.contrib.sites.models import Site
+                from odash.main.models import Site
                 try:
                     conf.SITE = Site.objects.get_current().name
-                except Site.DoesNotExist:
+                except:
                     conf.SITE = ''
             else:
                 conf.SITE = ''
@@ -139,12 +177,13 @@ class SiteFilter(SentryFilter):
             data['site'] = conf.SITE
         return data
 
-    def get_query_set(self, queryset):
-        return queryset.filter(message_set__site=self.get_value()).distinct()
+    def _get_query(self):
+        return Q(message_set__site=self.get_value())
 
 class LevelFilter(SentryFilter):
     label = 'Level'
     column = 'level'
-    
+    message_type = conf.LOG
+
     def get_choices(self):
         return SortedDict((str(k), v) for k, v in conf.LOG_LEVELS)

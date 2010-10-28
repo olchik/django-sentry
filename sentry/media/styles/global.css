@@ -414,6 +414,18 @@ dl.flat dd {
     background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#efd57c), to(#e0ae00));
 }
 
+.test.result-1 .count { /* failed */
+    background: #FF5400;
+    background:-moz-linear-gradient(center top , #efd57c, #e0ae00) repeat scroll 0 0 transparent;
+    background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#efd57c), to(#e0ae00));
+}
+
+.test.result-2 .count { /* passed */
+    background: #3079D0;
+    background:-moz-linear-gradient(center top , #efd57c, #e0ae00) repeat scroll 0 0 transparent;
+    background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#efd57c), to(#e0ae00));
+}
+
 .no-messages { font-size: 1.1em; padding: 20px 0; }
 
 .paging-wrap {
