@@ -18,6 +18,7 @@ from django.utils import simplejson
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
+from annoying.decorators import render_to
 from sentry import conf
 from sentry.helpers import get_filters
 from sentry.models import GroupedMessage, Message
@@ -66,6 +67,7 @@ def logout(request):
     return HttpResponseRedirect(reverse('sentry'))
 
 @login_required
+@render_to('sentry/index.html')
 def index(request):
     filters = []
     for filter_ in get_filters():
@@ -92,9 +94,8 @@ def index(request):
         sort = 'priority'
         message_list = message_list.order_by('-score', '-last_seen')
 
-    
     any_filter = False
-    
+
     query = Q()
     for filter_ in filters:
         if not filter_.is_set():
@@ -106,9 +107,8 @@ def index(request):
     today = datetime.datetime.now()
 
     has_realtime = page == 1
-    MEDIA_URL = '/media/'
     config = conf
-    return render_to_response('sentry/index.html', locals())
+    return locals()
 
 @login_required
 def ajax_handler(request):
@@ -184,6 +184,7 @@ def ajax_handler(request):
     return response
 
 @login_required
+@render_to('sentry/group/details.html')
 def group(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
 
@@ -212,19 +213,20 @@ def group(request, group_id):
     
     page = 'details'
     
-    return render_to_response('sentry/group/details.html', locals())
+    return locals()
+
 
 @login_required
+@render_to('sentry/group/message_list.html')
 def group_message_list(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
-
     message_list = group.message_set.all().order_by('-datetime')
-    
     page = 'messages'
-    
-    return render_to_response('sentry/group/message_list.html', locals())
+    return locals()
+
 
 @login_required
+@render_to('sentry/group/message.html')
 def group_message_details(request, group_id, message_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
 
@@ -254,7 +256,7 @@ def group_message_details(request, group_id, message_id):
     
     page = 'messages'
     
-    return render_to_response('sentry/group/message.html', locals())
+    return locals()
 
 @csrf_exempt
 def store(request):
