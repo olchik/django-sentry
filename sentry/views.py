@@ -101,7 +101,7 @@ def index(request):
             continue
         any_filter = True
         query &= filter_._get_query()
-    message_list = message_list.filter(query)
+    message_list = message_list.filter(query).distinct()
 
     today = datetime.datetime.now()
 
@@ -140,7 +140,7 @@ def ajax_handler(request):
                 continue
             any_filter = True
             query &= filter_._get_query()
-        message_list = message_list.filter(query)
+        message_list = message_list.filter(query).distinct()
 
         data = [
             (m.pk, {

@@ -60,6 +60,7 @@ class Migration(SchemaMigration):
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=32)),
             ('value', self.gf('django.db.models.fields.CharField')(max_length=200)),
+            ('label', self.gf('django.db.models.fields.CharField')(max_length=200)),
         ))
         db.send_create_signal('sentry', ['FilterValue'])
 
@@ -143,6 +144,7 @@ class Migration(SchemaMigration):
             'Meta': {'unique_together': "(('key', 'value'),)", 'object_name': 'FilterValue'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
+            'label': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
             'value': ('django.db.models.fields.CharField', [], {'max_length': '200'})
         },
         'sentry.groupedmessage': {

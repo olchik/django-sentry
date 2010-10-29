@@ -21,13 +21,15 @@ ANY_LABEL, LOG_LABEL, TEST_LABEL = None, 'Log', 'Test'
 MESSAGE_TYPES = ((LOG, LOG_LABEL),
                 (TEST, TEST_LABEL))
 
-DEFAULT_FILTERS = ('sentry.filters.MessageTypeFilter',
-                   'sentry.filters.StatusFilter',
+DEFAULT_FILTERS = ('sentry.filters.ProjectFilter',
+                   'sentry.filters.MessageTypeFilter',
                    'sentry.filters.ServerNameFilter',
-                   'sentry.filters.SiteFilter',
-                   'sentry.filters.TestResultsFilter',
-                   'sentry.filters.LoggerFilter',
-                   'sentry.filters.LevelFilter', )
+                   'sentry.filters.StatusFilter',
+                   #'sentry.filters.SiteFilter',
+                   #'sentry.filters.TestResultsFilter',
+                   #'sentry.filters.LoggerFilter',
+                   #'sentry.filters.LevelFilter', 
+                  )
 FILTERS = getattr(settings, 'SENTRY_FILTERS', DEFAULT_FILTERS)
 
 KEY = getattr(settings, 'SENTRY_KEY', md5_constructor(settings.SECRET_KEY).hexdigest())

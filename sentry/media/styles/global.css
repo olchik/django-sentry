@@ -206,12 +206,12 @@ span.commands a:link {color:#5E5694;}
 pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; margin: 10px 0 10px 0; }
 
 /* message details */
-.server-list, .url-list, .logger-list, .level-list { list-style: none; margin-left: 5px; }
+.server-list, .url-list, .logger-list, .level-list, .test_result-list { list-style: none; margin-left: 5px; }
 .server-list li, .url-list li { padding-bottom: 10px; }
 .url-list li a { line-height: 18px; }
 .filter-list { margin-left: 0; text-transform: lowercase; }
 .filter-list li a {
-    display: block; padding: 10px; text-decoration: none;
+    display: block; padding: 7px; text-decoration: none;
     border-bottom: 1px solid rgba(0,0,0, .05);
     -moz-box-shadow: 0 1px 0 rgba(255,255,255, .3);
      -webkit-box-shadow: 0 1px 0 rgba(255,255,255, .3);
@@ -228,7 +228,7 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
     -moz-box-shadow: inset 0 1px 0 rgba(0,0,0, .1);
     -webkit-box-shadow: inset 0 1px 0 rgba(0,0,0, .1);
 }
-.filter-list li.active a {
+.filter-list li.active>a {
     background: #3079d0;
     color: #fff;
     text-shadow: 0 -1px 0 #3079d0;
@@ -271,6 +271,23 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
     border-radius: 10px;
 }
 .filter-list li.active a { font-weight: bold; }
+
+#filters-accordion h3, .filter-list h3 {
+    margin-bottom: 10px;
+}
+
+.filter-list h3 {
+    margin-left: 25px;
+}
+.filter-list ul.subfilter {
+    margin: 0 20px;
+}
+.filter-list ul.subfilter a {
+    font-weight: normal;
+    padding: 5px;
+    padding-left: 7px;
+}
+
 dl.flat {
     margin-bottom: 1em;
 }

@@ -303,6 +303,7 @@ class FilterValue(models.Model):
     
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
+    label = models.CharField(max_length=200)
     
     class Meta:
         unique_together = (('key', 'value'),)
@@ -324,9 +325,9 @@ register_indexes()
 # post_syncdb.connect(GroupedMessage.create_sort_index, sender=__name__)
 post_syncdb.connect(GroupedMessage.create_sort_index, sender=sys.modules[__name__])
 
-import logging
-from sentry.client.handlers import SentryHandler
-logging.getLogger().addHandler(SentryHandler())
-logger = logging.getLogger('sentry.errors')
-logger.propagate = False
-logger.addHandler(logging.StreamHandler(sys.stdout))
+#import logging
+#from sentry.client.handlers import SentryHandler
+#logging.getLogger().addHandler(SentryHandler())
+#logger = logging.getLogger('sentry.errors')
+#logger.propagate = False
+#logger.addHandler(logging.StreamHandler(sys.stdout))

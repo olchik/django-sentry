@@ -12,7 +12,7 @@
         <script type="text/javascript">
         SENTRY_JS_API_URL = '{% url sentry-ajax %}';
         </script>
-        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+        <script type="text/javascript" src="{{ MEDIA_URL }}js/jquery-ui-1.8.5.custom.min.js"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/highcharts.js" %}" ></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>
@@ -54,16 +54,10 @@
 
                         <div id="filters-accordion">
                         {% for filter in filters %}
-                            {% ifchanged filter.message_type %}
-                                {% if not forloop.first %}</div>{% endif %}
-                                <h2>{{ filter.message_type_title|default:"Filters" }}</h2>
-                                <div style="border: 2px #fff solid; padding: 5px;">
-                            {% endifchanged %}
                             <h3>{{ filter.label }}</h3>
                             <form method="get" action="{{ filter.get_query_string|safe }}">
                                 {{ filter.render }}
                             </form>
-                            {% if forloop.last %}</div>{% endif %}
                         {% endfor %}
                     </div>
                 </div>

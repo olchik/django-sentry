@@ -5,6 +5,7 @@ from django.utils.safestring import mark_safe
 from django.db.models import Q
 
 from sentry import conf
+import odash
 
 class Widget(object):
     def __init__(self, filter, request):
@@ -22,12 +23,12 @@ class TextWidget(Widget):
         ))
 
 class ChoiceWidget(Widget):
-    def render(self, value):
+    def render(self, value, css_class=''):
         choices = self.filter.get_choices()
         query_string = self.get_query_string()
         column = self.filter.get_query_param()
 
-        output = ['<ul class="%s-list filter-list sidebar-module">' % (self.filter.column,)]
+        output = ['<ul class="%s-list filter-list %s sidebar-module">' % (self.filter.column, css_class)]
         output.append('<li%(active)s><a href="%(query_string)s&amp;%(column)s">Any %(label)s</a></li>' % dict(
             active=not value and ' class="active"' or '',
             query_string=query_string,
@@ -86,9 +87,10 @@ class SentryFilter(object):
     
     def get_choices(self):
         from sentry.models import FilterValue
-        return SortedDict((l, l) for l in FilterValue.objects.filter(key=self.column)\
-                                                     .values_list('value', flat=True)\
-                                                     .order_by('value'))
+        qs = FilterValue.objects.filter(key=self.column)\
+                                     .values_list('value', 'label')\
+                                     .order_by('value')
+        return SortedDict((value, label) for value, label in qs)
 
     def _get_query(self):
         try:
@@ -115,13 +117,11 @@ class SentryFilter(object):
         return widget.render(self.get_value())
 
 
-class MessageTypeFilter(SentryFilter):
-    label = 'Message Type'
-    column = 'message_type'
+class ProjectFilter(SentryFilter):
+    label = 'Project'
+    column = 'project'
     default = None
-
-    def get_choices(self):
-        return SortedDict(conf.MESSAGE_TYPES)
+    message_type = None
 
 
 class StatusFilter(SentryFilter):
@@ -152,10 +152,10 @@ class LoggerFilter(SentryFilter):
 
 class ServerNameFilter(SentryFilter):
     label = 'Server Name'
-    column = 'server_name'
+    column = 'site__servername'
 
     def _get_query(self):
-        return Q(message_set__server_name=self.get_value())
+        return Q(message_set__site__servername=self.get_value())
 
 class SiteFilter(SentryFilter):
     label = 'Site'
@@ -187,3 +187,66 @@ class LevelFilter(SentryFilter):
 
     def get_choices(self):
         return SortedDict((str(k), v) for k, v in conf.LOG_LEVELS)
+
+UL_FORMAT_STR = '<ul class="%s-list filter-list sidebar-module">'
+LI_FORMAT_STR = '<li%(active)s><a href="%(query_string)s&amp;%(column)s">%(value)s</a>'
+LI_ITEM_FORMAT_STR = '<li%(active)s><a href="%(query_string)s&amp;%(column)s=%(key)s">%(value)s</a>'
+SUBFILTER_HEADER = "<h3>%(label)s</h3>"
+
+
+class MessageTypeFilter(SentryFilter):
+    label = 'Message Type'
+    column = 'message_type'
+    default = None
+    message_type = None
+
+    TEMPLATE = 'sentry/multifilter.html'
+
+    choices = conf.MESSAGE_TYPES
+    subfilters = {conf.TEST: (TestResultsFilter, ),
+                  conf.LOG: (LoggerFilter, LevelFilter), }
+
+    def get_choices(self):
+        return SortedDict(conf.MESSAGE_TYPES)
+
+    def render(self):
+        def render_multi_widget(widget, value):
+            choices = widget.filter.get_choices()
+            query_string = widget.get_query_string()
+            column = widget.filter.get_query_param()
+    
+            # Render Any li
+            output = [UL_FORMAT_STR % (widget.filter.column,)]
+            output.append(LI_FORMAT_STR % dict(
+                active=not value and ' class="active"' or '',
+                query_string=query_string,
+                value='Any %s' % widget.filter.label,
+                column=column,
+            ))
+            output.append('</li>')
+    
+            for key, val in choices.iteritems():
+                ukey = unicode(key)
+                output.append(LI_ITEM_FORMAT_STR % dict(
+                    active=value == ukey and ' class="active"' or '',
+                    column=column,
+                    key=ukey,
+                    value=val,
+                    query_string=query_string,
+                ))
+                subfilters = self.subfilters[key]
+                if subfilters:
+                    for subfilter_cls in subfilters:
+                        subfilter = subfilter_cls(self.request)
+                        output.append(SUBFILTER_HEADER % dict(label=subfilter.label))
+                        subwidget = subfilter.get_widget()
+                        html = subwidget.render(subfilter.get_value(),
+                                                css_class='subfilter')
+                        output.append(html)
+
+                output.append('</li>')
+            output.append('</ul>')
+            return mark_safe('\n'.join(output))
+
+        widget = self.get_widget()
+        return render_multi_widget(widget, self.get_value())

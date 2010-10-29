@@ -70,11 +70,17 @@ class SentryManager(models.Manager):
                 **kwargs
             )
             if site:
-                FilterValue.objects.get_or_create(key='site', value=site)
+                print FilterValue.objects.all()
+                
+                FilterValue.objects.get_or_create(key='site__servername', value=site.servername, label=site.servername)
+#            if site:
+#                FilterValue.objects.get_or_create(key='site', value=site.id, label=site.name)
+            if site:
+                FilterValue.objects.get_or_create(key='project', value=project.id, label=project.name)
             if logger_name:
-                FilterValue.objects.get_or_create(key='logger', value=logger_name)
+                FilterValue.objects.get_or_create(key='logger', value=logger_name, label=logger_name)
             if test_result:
-                FilterValue.objects.get_or_create(key='test_result', value=test_result)
+                FilterValue.objects.get_or_create(key='test_result', value=test_result, label=test_result)
         except Exception, exc:
             # TODO: should we mail admins when there are failures?
             try:
